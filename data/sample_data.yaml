@@ -1,0 +1,162 @@
+---
+# Sample language tutoring messages with ground truth scores
+# Dimensions:
+# - LC: Lexical Complexity (Low/High)
+# - CC: Construction Complexity (Low/High)
+# - FL: Formality Level (Low/High)
+# - SA: Socratic Approach (Low/High)
+
+samples:
+  - id: 1
+    message: "So, the thing I'm wondering is, could you maybe think about what happens when we put together two really simple sentences, which might have been separate before, into one bigger sentence that flows better?"
+    scores:
+      LC: 0
+      CC: 1
+      FL: 0
+      SA: 1
+  
+  - id: 2
+    message: "The lexical semantics inherent in these morphemes must be understood as distinct from their etymological origins."
+    scores:
+      LC: 1
+      CC: 0
+      FL: 1
+      SA: 0
+  
+  - id: 3
+    message: "The gerund phrases you're messing up with are actually functioning as subjects in these complex sentences, even though they look super verbal."
+    scores:
+      LC: 1
+      CC: 1
+      FL: 0
+      SA: 0
+  
+  - id: 4
+    message: "May I inquire as to how one might form a question? What elements must be positioned at the beginning?"
+    scores:
+      LC: 0
+      CC: 0
+      FL: 1
+      SA: 1
+  
+  - id: 5
+    message: "Hey, so why would we use fancy words like 'ameliorate' when simpler ones work too? What effect does vocabulary choice have?"
+    scores:
+      LC: 1
+      CC: 0
+      FL: 0
+      SA: 1
+  
+  - id: 6
+    message: "It is necessary, when constructing sentences in which multiple clauses are embedded within the primary statement, to maintain proper subordination."
+    scores:
+      LC: 0
+      CC: 1
+      FL: 1
+      SA: 0
+  
+  - id: 7
+    message: "We use past tense for things that happened already. Add -ed to regular verbs."
+    scores:
+      LC: 0
+      CC: 0
+      FL: 0
+      SA: 0
+  
+  - id: 8
+    message: "When confronted with a subordinate clause that appears to violate prescriptive grammatical norms, how might one determine whether this represents dialectical variation or grammatical error?"
+    scores:
+      LC: 1
+      CC: 1
+      FL: 1
+      SA: 1
+  
+  - id: 9
+    message: "So check this out - when you're building these mega-complex sentences with all these clauses stacked inside each other, what happens to the meaning if you switch around the order?"
+    scores:
+      LC: 1
+      CC: 1
+      FL: 0
+      SA: 1
+  
+  - id: 10
+    message: "One forms the past perfect tense by employing the auxiliary 'had' followed by the past participle."
+    scores:
+      LC: 0
+      CC: 0
+      FL: 1
+      SA: 0
+  
+  - id: 11
+    message: "Would you consider how the morphological structure of lexemes contributes to semantic interpretation? What principles guide this process?"
+    scores:
+      LC: 1
+      CC: 0
+      FL: 1
+      SA: 1
+  
+  - id: 12
+    message: "You gotta remember that sentences with stuff like 'who' or 'which' in the middle are joining two thoughts together, even when they seem super casual."
+    scores:
+      LC: 0
+      CC: 1
+      FL: 0
+      SA: 0
+  
+  - id: 13
+    message: "The phonological assimilation happens when consonants meet, creating a kinda weird but predictable sound change."
+    scores:
+      LC: 1
+      CC: 0
+      FL: 0
+      SA: 0
+  
+  - id: 14
+    message: "Might I ask you to consider what occurs when we construct a sentence in which the relative clause modifies the subject? How does this affect our understanding?"
+    scores:
+      LC: 0
+      CC: 1
+      FL: 1
+      SA: 1
+  
+  - id: 15
+    message: "The syntactic constraints governing embedded clause formation necessitate adherence to hierarchical structural principles, particularly regarding complementizer selection and subject-verb agreement."
+    scores:
+      LC: 1
+      CC: 1
+      FL: 1
+      SA: 0
+  
+  - id: 16
+    message: "What happens when we talk about the past? How do we change verbs to show something already happened?"
+    scores:
+      LC: 0
+      CC: 0
+      FL: 0
+      SA: 1
+
+# Dimension descriptions
+dimensions:
+  LC:
+    name: "Lexical Complexity"
+    description: "Measures vocabulary sophistication and word choice"
+    low: "Elementary vocabulary, common words"
+    high: "Advanced, specialized terminology"
+  
+  CC:
+    name: "Construction Complexity"
+    description: "Measures syntactic structure sophistication"
+    low: "Simple sentences, basic structures"
+    high: "Complex embedded clauses, advanced constructions"
+  
+  FL:
+    name: "Formality Level"
+    description: "Measures casual vs. formal register of language"
+    low: "Very informal, conversational"
+    high: "Highly formal, academic"
+  
+  SA:
+    name: "Socratic Approach"
+    description: "Measures guidance through questioning vs. direct explanation"
+    low: "Direct statement, telling information"
+    high: "Question-based exploration, guiding discovery"
