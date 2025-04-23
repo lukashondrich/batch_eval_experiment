@@ -109,12 +109,6 @@ The experiment measures:
 
 ## Results
 
-The experiment demonstrates how the filler token approach reduces uniformity bias while maintaining accuracy, offering a more efficient alternative to independent evaluation.
-
-Key findings:
-- Baseline batch evaluation shows significant uniformity bias
-- Independent evaluation achieves highest accuracy but is inefficient
-- Filler token approach achieves comparable accuracy to independent evaluation while processing examples in batch
 
 ## License
 
