@@ -14,10 +14,12 @@ def main():
     parser = argparse.ArgumentParser(description="Run batch evaluation experiment")
     parser.add_argument("--model", type=str, default="gpt-4o", 
                         help="Model to use for evaluations (default: gpt-4o)")
-    parser.add_argument("--trials", type=int, default=3, 
-                        help="Number of trials to run (default: 3)")
-    parser.add_argument("--temperature", type=float, default=0.0, 
+    parser.add_argument("--trials", type=int, default=10, 
+                        help="Number of trials to run (default: 10)")
+    parser.add_argument("--temperature", type=float, default=0.2, 
                         help="Temperature for generation (default: 0.0)")
+    parser.add_argument("--repetition_penalty", type=float, default=0.0, 
+                        help="Repetition penalty for generation (default: 0.0)")
     parser.add_argument("--output", type=str, default="data/raw/evaluation_results.json", 
                         help="Output file path (default: data/raw/evaluation_results.json)")
     args = parser.parse_args()
@@ -39,14 +41,15 @@ def main():
         return 1
     
     # Run the experiment
-    print(f"Running experiment with model: {args.model}, trials: {args.trials}, temperature: {args.temperature}")
+    print(f"Running experiment with model: {args.model}, trials: {args.trials}, temperature: {args.temperature}, repetition_penalty: {args.repetition_penalty}")
     start_time = time.time()
     
     results = run_all_evaluations(
         sample_data, 
         trials=args.trials,
         model=args.model,
-        temperature=args.temperature
+        temperature=args.temperature,
+        repetition_penalty=args.repetition_penalty
     )
     
     elapsed_time = time.time() - start_time
@@ -61,11 +64,12 @@ def main():
     print(f"- Model: {args.model}")
     print(f"- Trials: {args.trials}")
     print(f"- Temperature: {args.temperature}")
+    print(f"- Repetition Penalty: {args.repetition_penalty}")
     print(f"- Samples: {len(sample_data['samples'])}")
     print(f"- Methods: baseline_batch, independent, filler_token_batch")
     print("\nNext steps:")
-    print("- Run analysis: python src/analysis.py")
-    print("- Create visualizations: python src/visualization.py")
+    print("- Run analysis: python -m src.analysis")
+    print("- Create visualizations: python -m src.visualization")
     
     return 0
 

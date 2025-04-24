@@ -25,7 +25,7 @@ def load_sample_data(file_path="data/sample_data.yaml"):
         data = yaml.safe_load(file)
     return data
 
-def run_baseline_batch_evaluation(messages, model="gpt-4", temperature=0.0):
+def run_baseline_batch_evaluation(messages, model="gpt-4", temperature=0.0, repetition_penalty=0.0):
     """
     Run baseline batch evaluation approach.
     All messages evaluated at once.
@@ -36,7 +36,8 @@ def run_baseline_batch_evaluation(messages, model="gpt-4", temperature=0.0):
         response = client.chat.completions.create(
             model=model,
             messages=[{"role": "user", "content": prompt}],
-            temperature=temperature
+            temperature=temperature,
+            frequency_penalty=repetition_penalty  
         )
         
         # Extract and parse the JSON response
@@ -57,6 +58,7 @@ def run_baseline_batch_evaluation(messages, model="gpt-4", temperature=0.0):
             "raw_response": result_text,
             "model": model,
             "temperature": temperature,
+            "frequency_penalty": repetition_penalty,
             "method": "baseline_batch"
         }
     
@@ -66,10 +68,11 @@ def run_baseline_batch_evaluation(messages, model="gpt-4", temperature=0.0):
             "prompt": prompt,
             "model": model,
             "temperature": temperature,
+            "frequency_penalty": repetition_penalty,
             "method": "baseline_batch"
         }
 
-def run_independent_evaluations(messages, model="gpt-4", temperature=0.0):
+def run_independent_evaluations(messages, model="gpt-4", temperature=0.0, repetition_penalty=0.0):
     """
     Run independent evaluation approach.
     Each message evaluated separately.
@@ -91,7 +94,8 @@ def run_independent_evaluations(messages, model="gpt-4", temperature=0.0):
             response = client.chat.completions.create(
                 model=model,
                 messages=[{"role": "user", "content": prompt}],
-                temperature=temperature
+                temperature=temperature,
+                frequency_penalty=repetition_penalty 
             )
             
             result_text = response.choices[0].message.content
@@ -120,7 +124,7 @@ def run_independent_evaluations(messages, model="gpt-4", temperature=0.0):
         "method": "independent"
     }
 
-def run_filler_token_batch_evaluation(messages, model="gpt-4", temperature=0.0):
+def run_filler_token_batch_evaluation(messages, model="gpt-4", temperature=0.0, repetition_penalty=0.0):
     """
     Run filler token batch evaluation approach.
     All messages at once but with forced thinking steps.
@@ -131,9 +135,9 @@ def run_filler_token_batch_evaluation(messages, model="gpt-4", temperature=0.0):
         response = client.chat.completions.create(
             model=model,
             messages=[{"role": "user", "content": prompt}],
-            temperature=temperature
+            temperature=temperature,
+            frequency_penalty=repetition_penalty
         )
-        
         result_text = response.choices[0].message.content
         
         # Extract the final JSON with scores
@@ -171,6 +175,7 @@ def run_filler_token_batch_evaluation(messages, model="gpt-4", temperature=0.0):
             "raw_response": result_text,
             "model": model,
             "temperature": temperature,
+            "frequency_penalty": repetition_penalty,
             "method": "filler_token_batch"
         }
     
@@ -180,10 +185,11 @@ def run_filler_token_batch_evaluation(messages, model="gpt-4", temperature=0.0):
             "prompt": prompt,
             "model": model,
             "temperature": temperature,
+            "frequency_penalty": repetition_penalty,
             "method": "filler_token_batch"
         }
 
-def run_all_evaluations(sample_data, trials=3, model="gpt-4", temperature=0.0):
+def run_all_evaluations(sample_data, trials=10, model="gpt-4", temperature=0.0, repetition_penalty=0.0):
     """
     Run all three evaluation approaches multiple times.
     
@@ -192,6 +198,7 @@ def run_all_evaluations(sample_data, trials=3, model="gpt-4", temperature=0.0):
         trials: Number of trials to run for each method
         model: Model to use for evaluations
         temperature: Temperature setting for generation
+        repetition_penalty: Controls repetition in generation
         
     Returns:
         Dictionary with results from all approaches and trials
@@ -206,6 +213,7 @@ def run_all_evaluations(sample_data, trials=3, model="gpt-4", temperature=0.0):
         "metadata": {
             "model": model,
             "temperature": temperature,
+            "frequency_penalty": repetition_penalty,
             "trials": trials,
             "timestamp": time.time()
         },
@@ -217,22 +225,17 @@ def run_all_evaluations(sample_data, trials=3, model="gpt-4", temperature=0.0):
         print(f"Running trial {trial+1}/{trials}...")
         
         print("  Baseline batch evaluation...")
-        baseline_result = run_baseline_batch_evaluation(messages, model, temperature)
+        baseline_result = run_baseline_batch_evaluation(messages, model, temperature, repetition_penalty)
         results["baseline_batch"].append(baseline_result)
         
         print("  Independent evaluations...")
-        independent_result = run_independent_evaluations(messages, model, temperature)
+        independent_result = run_independent_evaluations(messages, model, temperature, repetition_penalty)
         results["independent"].append(independent_result)
         
         print("  Filler token batch evaluation...")
-        filler_result = run_filler_token_batch_evaluation(messages, model, temperature)
+        filler_result = run_filler_token_batch_evaluation(messages, model, temperature, repetition_penalty)
         results["filler_token_batch"].append(filler_result)
-        
-        # Add delay between trials
-        if trial < trials - 1:
-            print("  Waiting between trials to avoid rate limits...")
-            time.sleep(5)
-    
+
     return results
 
 def save_results(results, filename="data/raw/evaluation_results.json"):

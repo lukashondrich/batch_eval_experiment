@@ -142,11 +142,27 @@ def analyze_results(results_file="data/raw/evaluation_results.json", sample_file
         Dictionary with analysis results
     """
     # Load data
-    results = load_results(results_file)
-    sample_data = load_sample_data(sample_file)
+    try:
+        results = load_results(results_file)
+        if not results:
+            print(f"Warning: No data found in {results_file}")
+            return {"error": "No results data found"}
+    except Exception as e:
+        print(f"Error loading results from {results_file}: {e}")
+        return {"error": f"Failed to load results: {str(e)}"}
+    
+    try:
+        sample_data = load_sample_data(sample_file)
+    except Exception as e:
+        print(f"Error loading sample data from {sample_file}: {e}")
+        return {"error": f"Failed to load sample data: {str(e)}"}
     
     # Convert ground truth to numeric
-    ground_truth = convert_ground_truth_to_numeric(sample_data)
+    try:
+        ground_truth = convert_ground_truth_to_numeric(sample_data)
+    except Exception as e:
+        print(f"Error converting ground truth to numeric: {e}")
+        return {"error": f"Failed to convert ground truth: {str(e)}"}
     
     # Initialize analysis results
     analysis = {
@@ -169,20 +185,30 @@ def analyze_results(results_file="data/raw/evaluation_results.json", sample_file
     
     # Analyze each method across trials
     for method in ["baseline_batch", "independent", "filler_token_batch"]:
+        if method not in results or not results[method]:
+            print(f"Warning: No data for method {method}")
+            continue
+            
         all_ub_metrics = []
         all_acc_metrics = []
         
         for trial_data in results[method]:
             if "results" in trial_data and trial_data["results"]:
                 # Calculate uniformity bias
-                ub_metrics = calculate_uniformity_bias(trial_data["results"])
-                all_ub_metrics.append(ub_metrics)
-                analysis["uniformity_bias"][method].append(ub_metrics)
+                try:
+                    ub_metrics = calculate_uniformity_bias(trial_data["results"])
+                    all_ub_metrics.append(ub_metrics)
+                    analysis["uniformity_bias"][method].append(ub_metrics)
+                except Exception as e:
+                    print(f"Error calculating uniformity bias for {method}: {e}")
                 
                 # Calculate accuracy metrics
-                acc_metrics = calculate_accuracy_metrics(trial_data["results"], ground_truth)
-                all_acc_metrics.append(acc_metrics)
-                analysis["accuracy"][method].append(acc_metrics)
+                try:
+                    acc_metrics = calculate_accuracy_metrics(trial_data["results"], ground_truth)
+                    all_acc_metrics.append(acc_metrics)
+                    analysis["accuracy"][method].append(acc_metrics)
+                except Exception as e:
+                    print(f"Error calculating accuracy metrics for {method}: {e}")
         
         # Calculate summary statistics
         if all_ub_metrics and all(m["mean_adjacent_correlation"] is not None for m in all_ub_metrics):
@@ -229,32 +255,124 @@ def create_summary_dataframe(analysis):
     """Create a summary DataFrame for easy comparison of methods."""
     data = []
     
+    # Check if analysis has valid summary data
+    if not analysis or "summary" not in analysis:
+        print("Warning: No valid summary data found in analysis results")
+        return pd.DataFrame({"method": ["No valid data available"]})
+    
     for method in ["baseline_batch", "independent", "filler_token_batch"]:
-        if method in analysis["summary"]:
+        if method in analysis["summary"] and analysis["summary"][method]:
             row = {
                 "method": method,
                 **analysis["summary"][method]
             }
             data.append(row)
     
+    if not data:
+        print("Warning: No summary data available for any method")
+        return pd.DataFrame({"method": ["No data available"]})
+    
     df = pd.DataFrame(data)
     
-    # Calculate normalized scores (0-100 where higher is better)
-    if "mean_adjacent_correlation" in df.columns:
+    # Calculate normalized scores (0-100 where higher is better) if we have the metrics
+    if "mean_adjacent_correlation" in df.columns and len(df) > 1:
         # For uniformity metrics, lower is better
-        df["uniformity_score"] = 100 * (1 - (df["mean_adjacent_correlation"] - df["mean_adjacent_correlation"].min()) / 
-                                     (df["mean_adjacent_correlation"].max() - df["mean_adjacent_correlation"].min() + 1e-10))
+        min_val = df["mean_adjacent_correlation"].min()
+        max_val = df["mean_adjacent_correlation"].max()
+        if min_val != max_val:  # Avoid division by zero
+            df["uniformity_score"] = 100 * (1 - (df["mean_adjacent_correlation"] - min_val) / 
+                                        (max_val - min_val))
     
-    if "mse" in df.columns:
+    if "mse" in df.columns and len(df) > 1:
         # For accuracy metrics, higher is better (except MSE)
-        df["accuracy_score"] = 100 * (1 - (df["mse"] - df["mse"].min()) / 
-                                   (df["mse"].max() - df["mse"].min() + 1e-10))
-    
-    # Overall score combining uniformity and accuracy
-    if "uniformity_score" in df.columns and "accuracy_score" in df.columns:
-        df["overall_score"] = (df["uniformity_score"] + df["accuracy_score"]) / 2
+        min_val = df["mse"].min()
+        max_val = df["mse"].max() 
+        if min_val != max_val:  # Avoid division by zero
+            df["accuracy_score"] = 100 * (1 - (df["mse"] - min_val) / 
+                                    (max_val - min_val))
     
     return df
+
+def run_significance_tests(results):
+    """
+    Run statistical significance tests between methods.
+    
+    Args:
+        results: Dictionary with evaluation results
+        
+    Returns:
+        Dictionary with p-values for key metrics
+    """
+    from scipy.stats import ttest_ind
+    
+    # Check if results is valid
+    if results is None or not isinstance(results, dict):
+        print("Warning: No valid results data for significance testing")
+        return {}
+    
+    methods = ["baseline_batch", "independent", "filler_token_batch"]
+    metrics = {
+        "mean_adjacent_correlation": [],
+        "mse": [],
+        "accuracy": [],
+        "correlation": []
+    }
+    
+    # Extract metrics from all trials for each method
+    for method in methods:
+        if method not in results or not results[method]:
+            continue
+            
+        method_metrics = {metric: [] for metric in metrics.keys()}
+        
+        for trial_data in results[method]:
+            # Get uniformity bias metrics from basic trial data
+            if isinstance(trial_data, dict) and "results" in trial_data and trial_data["results"]:
+                # Calculate uniformity bias for this trial
+                ub_metrics = calculate_uniformity_bias(trial_data["results"])
+                if ub_metrics["mean_adjacent_correlation"] is not None:
+                    method_metrics["mean_adjacent_correlation"].append(ub_metrics["mean_adjacent_correlation"])
+                
+                # Calculate accuracy metrics for this trial
+                gt = convert_ground_truth_to_numeric(load_sample_data())
+                acc_metrics = calculate_accuracy_metrics(trial_data["results"], gt)
+                if acc_metrics["mse"] is not None:
+                    method_metrics["mse"].append(acc_metrics["mse"])
+                if acc_metrics["accuracy"] is not None:
+                    method_metrics["accuracy"].append(acc_metrics["accuracy"])
+                if acc_metrics["correlation"] is not None:
+                    method_metrics["correlation"].append(acc_metrics["correlation"])
+        
+        # Add to metrics dict
+        for metric, values in method_metrics.items():
+            if values:  # Only if we have values
+                metrics[metric].append((method, values))
+    
+    # Run t-tests between methods for each metric
+    significance_results = {}
+    
+    for metric, method_values in metrics.items():
+        if len(method_values) < 2:
+            continue
+            
+        significance_results[metric] = {}
+        
+        # Run t-test for each pair of methods
+        for i, (method1, values1) in enumerate(method_values):
+            for method2, values2 in method_values[i+1:]:
+                if len(values1) > 1 and len(values2) > 1:  # Need at least 2 values for t-test
+                    try:
+                        t_stat, p_value = ttest_ind(values1, values2)
+                        key = f"{method1}_vs_{method2}"
+                        significance_results[metric][key] = {
+                            "t_statistic": float(t_stat),
+                            "p_value": float(p_value),
+                            "significant": bool(p_value < 0.05)
+                        }
+                    except Exception as e:
+                        print(f"Error running t-test for {method1} vs {method2} on {metric}: {e}")
+    
+    return significance_results
 
 def print_summary_table(df):
     """Print a summary table of the results."""
@@ -265,33 +383,102 @@ def print_summary_table(df):
     print("\nAccuracy Metrics (higher is better except MSE):")
     print(df[["method", "mse", "accuracy", "correlation"]].to_string(index=False))
     
-    if "overall_score" in df.columns:
+    if "uniformity_score" in df.columns and "accuracy_score" in df.columns:
         print("\nNormalized Scores (0-100, higher is better):")
-        print(df[["method", "uniformity_score", "accuracy_score", "overall_score"]].to_string(index=False))
+        print(df[["method", "uniformity_score", "accuracy_score"]].to_string(index=False))
+        
+def print_significance_tests(significance_results):
+    """Print results of significance tests."""
+    print("\n===== STATISTICAL SIGNIFICANCE TESTS =====\n")
     
-    # Print the best method
-    if "overall_score" in df.columns:
-        best_method = df.loc[df["overall_score"].idxmax(), "method"]
-        print(f"\nBest method: {best_method}")
+    for metric, tests in significance_results.items():
+        print(f"{metric}:")
+        
+        for comparison, results in tests.items():
+            significant = "SIGNIFICANT" if results["significant"] else "not significant"
+            print(f"  {comparison}: p={results['p_value']:.4f} ({significant})")
+        
+        print()
 
 def main():
     """Run the analysis."""
     print("Analyzing experiment results...")
-    analysis = analyze_results()
     
-    # Save analysis results
-    save_analysis(analysis)
+    # Load raw results for significance testing
+    try:
+        results = load_results()
+        print("Loaded raw evaluation results.")
+    except Exception as e:
+        print(f"Warning: Could not load raw results: {e}")
+        results = None
+    
+    # Run significance tests if possible
+    if results:
+        significance_results = run_significance_tests(results)
+        print("Completed significance tests.")
+    else:
+        significance_results = {}
+        print("Skipping significance tests due to missing data.")
+    
+    # Run regular analysis
+    try:
+        analysis = analyze_results()
+        if "error" in analysis:
+            print(f"Analysis error: {analysis['error']}")
+            # Still proceed with what we have
+        else:
+            print("Completed analysis of results.")
+    except Exception as e:
+        print(f"Error in analysis: {e}")
+        # Create a minimal analysis result to continue
+        analysis = {
+            "summary": {
+                "baseline_batch": {},
+                "independent": {},
+                "filler_token_batch": {}
+            }
+        }
+    
+    # Add significance results to analysis
+    if significance_results:
+        analysis["significance_tests"] = significance_results
+    
+    # Save analysis results if we have meaningful data
+    if analysis and "summary" in analysis and any(analysis["summary"].values()):
+        try:
+            save_analysis(analysis)
+            print("Saved analysis results.")
+        except Exception as e:
+            print(f"Error saving analysis: {e}")
+    else:
+        print("Not saving analysis due to insufficient data.")
     
     # Create and print summary table
-    df = create_summary_dataframe(analysis)
-    print_summary_table(df)
+    try:
+        df = create_summary_dataframe(analysis)
+        print_summary_table(df)
+    except Exception as e:
+        print(f"Error creating summary table: {e}")
+        df = None
     
-    # Save summary table
-    summary_file = "results/tables/summary_table.csv"
-    os.makedirs(os.path.dirname(summary_file), exist_ok=True)
-    df.to_csv(summary_file, index=False)
-    print(f"Summary table saved to {summary_file}")
+    # Print significance test results if available
+    if significance_results:
+        try:
+            print_significance_tests(significance_results)
+        except Exception as e:
+            print(f"Error printing significance tests: {e}")
     
+    # Save summary table if available
+    if df is not None:
+        try:
+            summary_file = "results/tables/summary_table.csv"
+            os.makedirs(os.path.dirname(summary_file), exist_ok=True)
+            df.to_csv(summary_file, index=False)
+            print(f"Summary table saved to {summary_file}")
+        except Exception as e:
+            print(f"Error saving summary table: {e}")
+    
+    print("Analysis complete.")
     return 0
 
 if __name__ == "__main__":
