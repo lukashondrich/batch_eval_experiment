@@ -108,7 +108,7 @@ The experiment measures:
    - Correlation with ground truth
 
 ## Results
-
+![Evaluation Results](results/figures/method_comparison.png)
 
 ## License
 
