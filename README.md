@@ -1,10 +1,10 @@
 # Batch Evaluation Experiment
 
-A research project examining uniformity bias in LLM batch evaluation and testing a novel filler-token approach to improve evaluation independence.
+A research project examining uniformity bias in LLM batch evaluation and testing a novel reasoning-token approach to improve evaluation independence.
 
 ## Overview
 
-When evaluating multiple examples in a single prompt (batch evaluation), large language models often exhibit **uniformity bias**—assigning similar scores to unrelated examples. This project implements and tests a novel approach that forces the model to think independently about each example by inserting filler tokens between evaluations.
+When evaluating multiple examples in a single prompt (batch evaluation), large language models often exhibit **uniformity bias**—assigning similar scores to unrelated examples. This project implements and tests an approach that makes the model think independently about each example by inserting a reasoning step between evaluations.
 
 We compare three evaluation approaches:
 
@@ -14,12 +14,12 @@ We compare three evaluation approaches:
 2. **Independent**  
    One example at a time (gold standard, but inefficient).
 
-3. **Filler Token**  
-   All examples in a batch, but with forced “thinking” steps (filler tokens) between each evaluation.
+3. **Reasoning Token**  
+   All examples in a batch, but with forced “thinking” steps (thinking tokens) between each evaluation.
 
 ## Key Findings
 
-Our experiments show that the **Filler Token** approach:
+Our experiments show that the **Reasoning Token** approach:
 
 - **Reduces Uniformity Bias**  
   Achieves near-independent evaluation quality, with much lower adjacent correlation than standard batch.
@@ -140,7 +140,7 @@ python main.py --model gpt-3.5-turbo --trials 5 --temperature 0.1
 | -------------------- | ------------------------- | --------------- | ------------------ |
 | baseline_batch       | –0.2812                   | 0.1048          | 0.5455             |
 | independent          | –0.3000                   | 0.1417          | 0.9909             |
-| filler_token_batch   | –0.2491                   | 0.1108          | 0.9364             |
+| reasoning_token_batch   | –0.2491                   | 0.1108          | 0.9364             |
 
 ### Accuracy Metrics (higher is better, except MSE)
 
@@ -148,18 +148,18 @@ python main.py --model gpt-3.5-turbo --trials 5 --temperature 0.1
 | -------------------- | -------- | -------- | ----------- |
 | baseline_batch       | 0.13175  | 0.82344  | 0.69858     |
 | independent          | 0.11913  | 0.80000  | 0.72656     |
-| filler_token_batch   | 0.09561  | 0.83438  | 0.79587     |
+| reasoning_token_batch   | 0.09561  | 0.83438  | 0.79587     |
 
 ### Statistical Significance
 
 - **Adjacent Correlation:**  
-  Filler token vs. independent (p = 0.0248)
+  reasoning token vs. independent (p = 0.0248)
 
 - **MSE Improvements:**  
   All pairwise comparisons (p < 0.001)
 
 - **Accuracy:**  
-  Filler token vs. independent (p = 0.0134)
+  reasoning token vs. independent (p = 0.0134)
 
 - **Correlation:**  
   All method comparisons (p < 0.001)
