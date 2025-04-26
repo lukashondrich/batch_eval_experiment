@@ -1,0 +1,74 @@
+basic_batch: |
+  Your task is to evaluate the following tutor messages across four dimensions:
+  {{ dimension_descriptions }}
+  Please evaluate each of the following messages and return a JSON object mapping each example number (as a string) to a 4-element array of scores [Lexical Complexity, Construction Complexity, Formality Level, Socratic Approach]:
+  {% for msg in messages %}
+  {{ msg.index }}. {{ msg.text }}
+  {% endfor %}
+  Provide only the JSON object.
+
+sophisticated_batch: |
+  Your task is to evaluate the following tutor messages across four dimensions describing the complexity, formality and tutoring style of the language used.
+  
+  The scoring dimensions are:
+  {{ dimension_descriptions }}
+  
+  For each message, follow these exact steps:
+  1. Repeat the message text in quotes (MESSAGE: "")
+  2. Analyze the message in detail, across the four dimensions (THINKING for message : "")
+  3. Then provide numerical scores only after completing your analysis (SCORES for message : [x.x, x.x, x.x, x.x])
+  
+  {% for msg in messages %}
+  Message {{ msg.index }}: "{{ msg.text }}"
+  
+  THINKING for message {{ msg.index }}:
+  - Lexical Complexity: Start by identifying the vocabulary level. Note specific words that are simple/common or specialized/advanced. Consider whether most learners would understand the terminology without explanation.
+  - Construction Complexity: Analyze sentence structure. Identify if there are simple sentences or complex ones with embedded clauses. Quote specific phrases that demonstrate complexity or simplicity.
+  - Formality Level: Evaluate whether the language is informal/conversational or formal/academic. Point out specific phrases that indicate formality level.
+  - Socratic Approach: Determine if the message directly provides information or uses questions to guide discovery. Note specific questioning or direct instructional techniques.
+  
+  SCORES for message {{ msg.index }}: [Lexical Complexity, Construction Complexity, Formality Level, Socratic Approach]
+  {% endfor %}
+  
+  After completing your analysis of all messages, provide ONLY the JSON object on a new line after:
+  
+  FINAL_JSON_OUTPUT:
+  {"1": [x.x, x.x, x.x, x.x], "2": [x.x, x.x, x.x, x.x], ...}
+
+independent: |
+  Your task is to evaluate the following tutoring message across four dimensions:
+  {{ dimension_descriptions }}
+  
+  Message: "{{ message }}"
+  
+  For this message, you MUST first show your detailed analysis of each dimension, and only then give scores. DO NOT skip the analysis step.
+  
+  THINKING:
+  - Lexical Complexity: [your-analysis-here]
+  - Construction Complexity: [your-analysis-here]
+  - Formality Level: [your-analysis-here]
+  - Socratic Approach: [your-analysis-here]
+  
+  After your analysis, provide ONLY the JSON object on a new line after:
+  
+  FINAL_JSON_OUTPUT:
+  {"{{ message_id }}": [x.x, x.x, x.x, x.x]}
+
+dimension_descriptions: |
+  Evaluate each tutoring message on these dimensions (0.0 = low, 1.0 = high):
+  
+  1. Lexical Complexity (Lexical Complexity):
+     - 0.0: Elementary vocabulary, common words
+     - 1.0: Advanced, specialized terminology
+  
+  2. Construction Complexity (Construction Complexity):
+     - 0.0: Simple sentences, basic structures
+     - 1.0: Complex embedded clauses, advanced constructions
+  
+  3. Formality Level (Formality Level):
+     - 0.0: Very informal, conversational
+     - 1.0: Highly formal, academic
+  
+  4. Socratic Approach:
+     - 0.0: Direct statements, giving information
+     - 1.0: Question-based exploration, guiding discovery

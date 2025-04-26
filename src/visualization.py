@@ -10,6 +10,23 @@ import seaborn as sns
 from src.evaluation import load_sample_data
 from src.analysis import load_results, convert_ground_truth_to_numeric
 
+# Define consistent colors for methods
+METHOD_COLORS = {
+    "Baseline Batch": "#1f77b4",    # Blue
+    "Independent": "#ff7f0e",       # Orange
+    "Explicit Reasoning": "#2ca02c", # Green
+    "Ground Truth": "#d62728"       # Red
+}
+
+def method_display_name(method_name):
+    """Return display-friendly method names."""
+    mapping = {
+        "baseline_batch": "Baseline Batch",
+        "independent": "Independent",
+        "filler_token_batch": "Explicit Reasoning" 
+    }
+    return mapping.get(method_name, method_name)
+
 def load_analysis(file_path="data/processed/analysis_results.json"):
     """Load analysis results from JSON file."""
     with open(file_path, 'r') as file:
@@ -92,7 +109,7 @@ def plot_method_comparison(analysis, filename="results/figures/method_comparison
             for metric, label in metrics.items():
                 if metric in analysis["summary"][method]:
                     data.append({
-                        "Method": method.replace("_", " ").title(),
+                        "Method": method_display_name(method),
                         "Metric": label,
                         "Value": analysis["summary"][method][metric]
                     })
@@ -103,9 +120,6 @@ def plot_method_comparison(analysis, filename="results/figures/method_comparison
     
     df = pd.DataFrame(data)
     
-    # Normalize values for comparable visualization
-    metrics_df = df.pivot(index="Metric", columns="Method", values="Value").reset_index()
-    
     # Create the plot
     plt.figure(figsize=(12, 8))
     
@@ -115,28 +129,33 @@ def plot_method_comparison(analysis, filename="results/figures/method_comparison
         if len(values) > 0:
             ax = plt.subplot(2, 3, i+1)
             
-            # Determine direction (lower or higher is better)
+            # Sort values based on metric direction
             if "lower better" in label:
-                best_color = "green"
-                worst_color = "red"
                 values = values.sort_values("Value")
             else:
-                best_color = "green"
-                worst_color = "red"
                 values = values.sort_values("Value", ascending=False)
             
-            # Create color map based on performance
-            colors = [best_color, "orange", worst_color][:len(values)]
+            # Create color map based on method names
+            colors = [METHOD_COLORS[method] for method in values["Method"]]
             
             # Plot the bars
-            sns.barplot(x="Method", y="Value", data=values, palette=colors, ax=ax)
+            bars = sns.barplot(x="Method", y="Value", data=values, palette=colors, ax=ax)
             ax.set_title(label)
             ax.set_ylabel("")
             ax.set_xlabel("")
             
             # Add value labels
-            for j, v in enumerate(values["Value"]):
-                ax.text(j, v * 0.5, f"{v:.4f}", horizontalalignment="center", color="white", fontweight="bold")
+            for j, bar in enumerate(bars.patches):
+                height = bar.get_height()
+                ax.text(
+                    bar.get_x() + bar.get_width()/2.,
+                    height * 0.5,
+                    f"{values.iloc[j]['Value']:.4f}",
+                    ha='center',
+                    va='center',
+                    color='white',
+                    fontweight='bold'
+                )
     
     plt.tight_layout()
     
@@ -160,7 +179,6 @@ def plot_score_distribution(results, ground_truth, filename="results/figures/sco
     all_scores = []
     
     methods = ["baseline_batch", "independent", "filler_token_batch"]
-    method_names = ["Baseline Batch", "Independent", "Filler Token"]
     
     for i, method in enumerate(methods):
         if method in results and results[method]:
@@ -171,7 +189,7 @@ def plot_score_distribution(results, ground_truth, filename="results/figures/sco
                             for dim_idx, score in enumerate(scores):
                                 dimension = ["LC", "CC", "FL", "SA"][dim_idx]
                                 all_scores.append({
-                                    "Method": method_names[i],
+                                    "Method": method_display_name(method),
                                     "Dimension": dimension,
                                     "Example": example_id,
                                     "Score": score,
@@ -203,12 +221,22 @@ def plot_score_distribution(results, ground_truth, filename="results/figures/sco
     dimensions = ["LC", "CC", "FL", "SA"]
     dimension_names = ["Lexical Complexity", "Construction Complexity", "Formality Level", "Socratic Approach"]
     
+    # Create custom color palette that matches our METHOD_COLORS
+    methods_in_data = df["Method"].unique()
+    custom_palette = {method: METHOD_COLORS.get(method, "#777777") for method in methods_in_data}
+    
     for i, (dim, name) in enumerate(zip(dimensions, dimension_names)):
         ax = plt.subplot(2, 2, i+1)
         
-        # KDE plot with rug plot
-        sns.violinplot(x="Method", y="Score", data=df[df["Dimension"] == dim], 
-                      palette="Set2", ax=ax, inner="box")
+        # Violin plot with consistent colors
+        sns.violinplot(
+            x="Method", 
+            y="Score", 
+            data=df[df["Dimension"] == dim], 
+            palette=custom_palette,
+            ax=ax, 
+            inner="box"
+        )
         
         ax.set_title(name)
         ax.set_ylim(-0.1, 1.1)
@@ -228,37 +256,6 @@ def plot_score_distribution(results, ground_truth, filename="results/figures/sco
     
     print(f"Score distribution plot saved to {filename}")
 
-def plot_dimension_correlation(results, method, trial_idx=0, filename="results/figures/dimension_correlation.png"):
-    """
-    Plot correlation between dimensions for a specific method.
-    
-    Args:
-        results: Dictionary with evaluation results
-        method: Evaluation method name
-        trial_idx: Index of trial to visualize
-        filename: Output file path
-    """
-    df = create_heatmap_data(results, method, trial_idx)
-    if df is None:
-        print(f"No data available for dimension correlation plot: {method}")
-        return
-    
-    # Create correlation matrix
-    corr = df.corr()
-    
-    # Create plot
-    plt.figure(figsize=(8, 6))
-    sns.heatmap(corr, annot=True, cmap="coolwarm", vmin=-1, vmax=1, linewidths=.5)
-    plt.title(f"Dimension Correlation: {method.replace('_', ' ').title()}")
-    plt.tight_layout()
-    
-    # Ensure directory exists
-    os.makedirs(os.path.dirname(filename), exist_ok=True)
-    plt.savefig(filename)
-    plt.close()
-    
-    print(f"Dimension correlation plot saved to {filename}")
-
 def main():
     """Create visualizations for the experiment results."""
     print("Creating visualizations...")
@@ -269,28 +266,16 @@ def main():
     sample_data = load_sample_data()
     ground_truth = convert_ground_truth_to_numeric(sample_data)
     
-    # Create heatmaps for each method (first trial)
-    for method in ["baseline_batch", "independent", "filler_token_batch"]:
-        df = create_heatmap_data(results, method)
-        if df is not None:
-            title = f"Scores: {method.replace('_', ' ').title()}"
-            filename = f"results/figures/{method}_heatmap.png"
-            plot_score_heatmap(df, title, filename)
-    
-    # Create ground truth heatmap
+    # Create ground truth heatmap for reference
     gt_df = pd.DataFrame.from_dict(ground_truth, orient='index', columns=["LC", "CC", "FL", "SA"])
     gt_df.index.name = "Example"
     plot_score_heatmap(gt_df, "Ground Truth Scores", "results/figures/ground_truth_heatmap.png")
     
-    # Create method comparison plot
+    # Create method comparison plot - most important visualization
     plot_method_comparison(analysis)
     
-    # Create score distribution plot
+    # Create score distribution plot - shows distribution across dimensions
     plot_score_distribution(results, ground_truth)
-    
-    # Create dimension correlation plots
-    for method in ["baseline_batch", "independent", "filler_token_batch"]:
-        plot_dimension_correlation(results, method, filename=f"results/figures/{method}_correlation.png")
     
     print("Visualizations complete.")
     return 0

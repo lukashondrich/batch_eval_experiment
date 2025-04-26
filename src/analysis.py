@@ -251,47 +251,6 @@ def save_analysis(analysis, filename="data/processed/analysis_results.json"):
     print(f"Analysis results saved to {filename}")
     return filename
 
-def create_summary_dataframe(analysis):
-    """Create a summary DataFrame for easy comparison of methods."""
-    data = []
-    
-    # Check if analysis has valid summary data
-    if not analysis or "summary" not in analysis:
-        print("Warning: No valid summary data found in analysis results")
-        return pd.DataFrame({"method": ["No valid data available"]})
-    
-    for method in ["baseline_batch", "independent", "filler_token_batch"]:
-        if method in analysis["summary"] and analysis["summary"][method]:
-            row = {
-                "method": method,
-                **analysis["summary"][method]
-            }
-            data.append(row)
-    
-    if not data:
-        print("Warning: No summary data available for any method")
-        return pd.DataFrame({"method": ["No data available"]})
-    
-    df = pd.DataFrame(data)
-    
-    # Calculate normalized scores (0-100 where higher is better) if we have the metrics
-    if "mean_adjacent_correlation" in df.columns and len(df) > 1:
-        # For uniformity metrics, lower is better
-        min_val = df["mean_adjacent_correlation"].min()
-        max_val = df["mean_adjacent_correlation"].max()
-        if min_val != max_val:  # Avoid division by zero
-            df["uniformity_score"] = 100 * (1 - (df["mean_adjacent_correlation"] - min_val) / 
-                                        (max_val - min_val))
-    
-    if "mse" in df.columns and len(df) > 1:
-        # For accuracy metrics, higher is better (except MSE)
-        min_val = df["mse"].min()
-        max_val = df["mse"].max() 
-        if min_val != max_val:  # Avoid division by zero
-            df["accuracy_score"] = 100 * (1 - (df["mse"] - min_val) / 
-                                    (max_val - min_val))
-    
-    return df
 
 def run_significance_tests(results):
     """
@@ -382,10 +341,29 @@ def print_summary_table(df):
     
     print("\nAccuracy Metrics (higher is better except MSE):")
     print(df[["method", "mse", "accuracy", "correlation"]].to_string(index=False))
+
+def create_summary_dataframe(analysis):
+    """Create a summary DataFrame for easy comparison of methods."""
+    data = []
     
-    if "uniformity_score" in df.columns and "accuracy_score" in df.columns:
-        print("\nNormalized Scores (0-100, higher is better):")
-        print(df[["method", "uniformity_score", "accuracy_score"]].to_string(index=False))
+    # Check if analysis has valid summary data
+    if not analysis or "summary" not in analysis:
+        print("Warning: No valid summary data found in analysis results")
+        return pd.DataFrame({"method": ["No valid data available"]})
+    
+    for method in ["baseline_batch", "independent", "filler_token_batch"]:
+        if method in analysis["summary"] and analysis["summary"][method]:
+            row = {
+                "method": method,
+                **analysis["summary"][method]
+            }
+            data.append(row)
+    
+    if not data:
+        print("Warning: No summary data available for any method")
+        return pd.DataFrame({"method": ["No data available"]})
+    
+    return pd.DataFrame(data)
         
 def print_significance_tests(significance_results):
     """Print results of significance tests."""

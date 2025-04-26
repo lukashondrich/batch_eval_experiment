@@ -25,7 +25,7 @@ def load_sample_data(file_path="data/sample_data.yaml"):
         data = yaml.safe_load(file)
     return data
 
-def run_baseline_batch_evaluation(messages, model="gpt-4", temperature=0.0, repetition_penalty=0.0):
+def run_baseline_batch_evaluation(messages, model="gpt-4", temperature=0.2, repetition_penalty=0.0):
     """
     Run baseline batch evaluation approach.
     All messages evaluated at once.
@@ -138,8 +138,9 @@ def run_filler_token_batch_evaluation(messages, model="gpt-4", temperature=0.0, 
             temperature=temperature,
             frequency_penalty=repetition_penalty
         )
-        result_text = response.choices[0].message.content
+        result_text = response.choices[0].message.content 
         
+
         # Extract the final JSON with scores
         json_start = result_text.rfind('{')
         json_end = result_text.rfind('}') + 1
