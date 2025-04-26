@@ -32,8 +32,8 @@ wheels/
 # Project specific
 data/raw/*
 data/processed/*
-results/figures/*
-results/tables/*
+
+
 !data/raw/.gitkeep
 !data/processed/.gitkeep
 !results/figures/.gitkeep
